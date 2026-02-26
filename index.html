@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Historia de España</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #e67e22;
+            --bg: #f4f7f6;
+            --text: #333;
+            --white: #ffffff;
+            --accent: #3498db;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--secondary); padding-bottom: 10px; }
+
+        .menu-buttons { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            transition: 0.2s;
+            margin: 5px;
+        }
+
+        button:hover { background: var(--secondary); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        .game-area { margin-top: 20px; display: none; }
+        .active { display: block; }
+
+        /* Estilos para el reto uno a uno */
+        .pool-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            background: #f1f1f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .selection-box {
+            min-height: 50px;
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #eef7ff;
+        }
+
+        .term-btn {
+            background: var(--accent);
+            font-size: 0.9em;
+        }
+
+        .order-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin: 4px;
+            font-size: 0.85em;
+        }
+
+        .definition-text { font-style: italic; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; line-height: 1.6; }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .feedback { font-weight: bold; margin-top: 15px; padding: 10px; border-radius: 4px; display: none; text-align: center; }
+        .correct { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .incorrect { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .score-display {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+            border: 2px dashed var(--primary);
+        }
+        .score-number { color: var(--secondary); font-size: 2.5em; font-weight: bold; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📚 Historia de España (2025-2026)</h1>
+    
+    <div class="menu-buttons">
+        <button onclick="showGame('reto-cronologico')">Reto Cronológico</button>
+        <button onclick="showGame('examen-vocabulario')">Examen de Vocabulario</button>
+    </div>
+
+    <hr>
+
+    <div id="reto-cronologico" class="game-area">
+        <h2>Reto: Ordena Cronológicamente</h2>
+        <p>¿Cuántos términos quieres ordenar? (2-20):</p>
+        <input type="number" id="cantidad-reto" min="2" max="20" value="5">
+        <button onclick="iniciarReto()">Generar Reto</button>
+        
+        <div id="pantalla-reto" style="display:none; margin-top:20px;">
+            <p><strong>Haz clic en los términos en orden (del más antiguo al más reciente):</strong></p>
+            
+            <div id="pool-terminos" class="pool-container"></div>
+            
+            <p><strong>Tu orden seleccionado:</strong></p>
+            <div id="caja-seleccion" class="selection-box">
+                <span style="color: #666; font-style: italic;">Haz clic en los botones de arriba...</span>
+            </div>
+            
+            <button id="btn-comprobar-cron" onclick="verificarCronologia()" style="display:none; background: #27ae60;">Comprobar Orden</button>
+            <button onclick="iniciarReto()" style="background: #95a5a6;">Reiniciar / Nuevo</button>
+        </div>
+    </div>
+
+    <div id="examen-vocabulario" class="game-area">
+        <h2>Examen de Vocabulario</h2>
+        <p>¿Cuántas definiciones quieres en este examen?</p>
+        <input type="number" id="cantidad-vocabulario" min="1" max="20" value="5">
+        <button onclick="iniciarExamen()">Empezar Examen</button>
+        
+        <div id="pantalla-examen" style="display:none; margin-top:20px;">
+            <h3 id="contador-preguntas" style="color: var(--primary);"></h3>
+            <div class="definition-text" id="definicion-display"></div>
+            <input type="text" id="respuesta-vocabulario" placeholder="Escribe el término exacto..." onkeypress="if(event.key==='Enter') verificarVocabulario()">
+            <button id="btn-validar-vocab" onclick="verificarVocabulario()">Validar Respuesta</button>
+            <button id="btn-siguiente-vocab" onclick="siguientePreguntaExamen()" style="display:none; background-color: #27ae60;">Siguiente Pregunta</button>
+        </div>
+
+        <div id="resultado-final-vocabulario" class="score-display" style="display:none;"></div>
+    </div>
+
+    <div id="feedback-global" class="feedback"></div>
+</div>
+
+<script>
+    // --- DATOS ÍNTEGROS DE LOS ARCHIVOS .PY ---
+    const TERMINOS_HISTORIA = {
+        "Espartero": 1, "Desamortizaciones": 2, "Isabel II": 3, "Ley General de Ferrocarriles": 4,
+        "Revolución Gloriosa": 5, "Pi y Margall": 6, "Alfonso XII": 7, "Sagasta": 8,
+        "Sociedad de clases": 9, "Anarquismo": 10, "PSOE": 11, "Nacionalismo": 12,
+        "Desastre del 98": 13, "Regeneracionismo": 14, "Semana Trágica de Barcelona": 15,
+        "CNT": 16, "Desastre de Annual": 17, "Pacto de San Sebastián": 18,
+        "Clara Campoamor": 19, "Sanjurjada": 20
+    };
+
+    const VOCABULARIO_HISTORIA = {
+        "Espartero": `General del ejército isabelino, vencedor en la primera guerra carlista, y firmante del Convenio de Vergara que pone fin a este conflicto. Su prestigio como vencedor le permite ser nombrado Duque de la Victoria y Príncipe de Vergara, así como regente de España entre los años 1840 al 43. Su talante autoritario le granjeó numerosos enemigos dentro del partido progresista, que le forzarán a renunciar a la regencia en 1843. Vuelve en 1854 cuando fue nombrado presidente del Consejo de ministros dando paso al Bienio Progresista que acaba en 1856. Su último episodio político fue la oferta de la corona que le hizo Prim en 1870, pero no la aceptó, muriendo en Logroño en 1879.`,
+        "Desamortizaciones": `Proceso fundamental en la reforma agraria liberal que se produjo en España, en 1836 con Mendizábal y en 1855 con Madoz, y que consistió en la expropiación de los bienes, rústicos y urbanos, de la Iglesia y de los municipios y su privatización posterior mediante venta en pública subasta. Con esta medida se ponía fin a la propiedad de manos muertas, propia del Antigua Régimen, sustituyéndola por una propiedad privada de carácter capitalista.`,
+        "Isabel II": `Reina de España entre 1833 y 1868, fecha en la que fue destronada por la llamada «Revolución Gloriosa». Su reinado ocupa una etapa larga y compleja caracterizada por el cambio político profundo que trae consigo la Revolución liberal. Su corta edad al asumir el trono y su escasa preparación, pueden explicar algunos de los errores de su reinado, siempre marcado por la influencia de los espadones del partido liberal moderado, lo que le llevó a marginar a los liberales progresistas en las tareas de gobierno. Su alianza con los moderados llevó a un funcionamiento anómalo del sistema político, al margen de lo establecido en el sistema constitucional, lo que provocó la corrupción política y al desprestigio de la propia monarquía.`,
+        "Ley General de Ferrocarriles": `Norma aprobada en 1855, durante el bienio progresista, en la que se garantizaba un interés mínimo del 6% a los inversores en el ferrocarril, además de dar a las compañías constructoras grandes ventajas como la importación sin pagar aranceles o la gratuidad de las tierras comunales por donde pasase la línea férrea. Esta ley fue la causa del gran impulso en la construcción de la primera red ferroviaria española y contribuyó al desarrollo de un auténtico mercado nacional. Se construyó según los intereses de sus promotores, priorizando la conexión de regiones económicas dinámicas y la exportación de minerales.`,
+        "Revolución Gloriosa": `Levantamiento armado, organizado por los generales Prim y Serrano, llevado a cabo por el general Topete en Cádiz. Fue apoyado por casi todos los partidos en septiembre de 1868 cuyo manifiesto “España con honra” proclamaba la expulsión de la reina y la formación de un gobierno provisional. Contó con apoyo civil por lo que se convirtió en una revolución popular, frente a un sistema que había derivado en autoritarismo, y frente a la propia monarquía. Tras la derrota del ejército defensor de la reina Isabel en Alcolea, supuso el derrocamiento de la dinastía de los Borbones y el inicio del sexenio democrático.`,
+        "Pi y Margall": `Político catalán, principal representante del republicanismo federal en la España del siglo XIX. Fue líder del Partido Demócrata y, a partir de 1870, del Partido Republicano Federal. Durante la I República fue nombrado ministro y, posteriormente, presidente de la República, Durante su mandato aprobó las Leyes para aumentar los derechos laborales y se inició la elaboración de la constitución de 1873. Los numerosos conflictos como la Guerra de Cuba, la III Guerra carlista y el cantonalismo, provocaron su renuncia. Tras la restauración de 1874 fue elegido diputado en tres ocasiones.`,
+        "Alfonso XII": `Monarca español, hijo de Isabel II, que, con su llegada al trono en 1875, restaura la dinastía de los Borbones en España. Durante su reinado se puso en práctica el sistema del turno, o sistema canovista, basado en la alternancia en el poder de los dos partidos del sistema, o partidos dinásticos. Los hechos más destacados de su reinado son la aprobación de la Constitución de 1876 y la firma de la paz de Zanjón que puso fin a la Guerra de Independencia en Cuba. Murió muy joven, a los 28 años, sin heredero varón nacido, por lo que ejerció la regencia su viuda María Cristina de Habsburgo.`,
+        "Sagasta": `Político español, presidente del partido Liberal-Fusionista, que, junto con el Conservador, formaba parte del sistema de turno durante el último cuarto del siglo XIX. A él se deben reformas importantes como el Código civil, la Ley de asociaciones, la Ley del Jurado y, sobre todo, la Ley de Sufragio Universal masculino, que establecía definitivamente en España este tipo de sufragio. En el aspecto negativo, tuvo que hacer frente al desastre colonial de 1898.`,
+        "Sociedad de clases": `Forma de organización social propia del sistema liberal, basada en la división de la sociedad en grupos abiertos, a los que se pertenece según la capacidad económica. La sociedad de clases tiene como fundamento jurídico el principio de igualdad ante la ley, con el que desaparecen los privilegios de la sociedad del Antiguo Régimen. Se implanta en Europa en la segunda mitad del S. XVIII, y en España, definitivamente, a partir de la Constitución de 1837.`,
+        "Anarquismo": `Corriente política surgida en el s. XIXI, defendida por Bakunin que busca la emancipación económica y social de la clase obrera, la abolición de la sociedad de clases y de la propiedad privada de los medios de producción, con el fin de lograr una sociedad igualitaria. Para lograr todo esto era necesaria una revolución espontánea de los trabajadores, sin líderes, que implantaría un modelo de sociedad basado en comunas autónomas y autogestionarias. El anarquismo no reconoce el Estado, por constituir un peligro para la libertad individual. En España se instala con la fundación de la FRE (Federación Regional Española de la Asociación Internacional de Trabajadores) en 1870.`,
+        "PSOE": `Partido Socialista Obrero Español fundado por Pablo Iglesias en 1879, como un partido de masas con un programa que perseguía la conquista del poder político por la clase obrera para abolir la propiedad privada y la sociedad de clases, incluyendo una larga lista de reivindicaciones políticas y sociolaborales. Su implantación es importante entre la clase obrera de Madrid, Asturias y Vizcaya, pero no tendrá peso político hasta 1910, cuando Pablo Iglesias consigue su acta de Diputado en las elecciones generales.`,
+        "Nacionalismo": `Ideología y movimiento político surgida tras la caída del imperio napoleónico, reivindica el poder de cada nación, siendo una nación una comunidad de individuos que comparten historia, lengua y cultura, para elegir su propia soberanía. En la historia de España comienza con la Restauración, a finales del siglo XIX, movimientos reivindicativos de los llamados “derechos históricos” de catalanes y vascos, y en menor medida, de gallegos y valencianos.`,
+        "Desastre del 98": `Se conoce así, la derrota del ejército español en la guerra entre España y Estados Unidos en 1898, que supuso para nuestro país la pérdida de las posesiones coloniales de Cuba, Puerto Rico, Isla de Guam e Islas Filipinas, que pasaron al dominio estadounidense. Esta derrota tuvo consecuencias políticas, como el desprestigio de los militares que agudizó el antimilitarismo en las clases populares, así como el desprestigio de los partidos políticos del sistema. De forma indirecta favoreció la aparición del movimiento regeneracionista.`,
+        "Regeneracionismo": `Corriente de pensamiento que cuestionó los valores y el sistema político de la Restauración en España a finales del s. XIX y principios del s. XX tras el Desastre del 98. Su figura más destacada fue Joaquín Costa, cuya obra “Oligarquía y caciquismo”, denunciaba la incultura, la decadencia de la oligarquía caciquil y el atraso español. Proponía incentivar la educación, la europeización, la descentralización administrativa y una política que activara las obras hidráulicas y la agricultura. Para ello era necesaria la movilización de las clases medias conducidas por un líder fuerte (cirujano de hierro).`,
+        "Semana Trágica de Barcelona": `Levantamiento social que tuvo lugar en el verano de 1909, a raíz de la leva de tropas para la guerra en Marruecos. Lo que en principio era una huelga general, se convirtió en un levantamiento armado, que tuvo a la iglesia como principal víctima, con la quema de numerosas iglesias y conventos. La intervención del ejército puso punto final al levantamiento, con numerosos muertos y detenidos, y con varios condenados a muerte, entre los que destaca el profesor anarquista Antonio Ferrer y Guardia, acusado de ser el ideólogo de esta.`,
+        "CNT": `Confederación Nacional del Trabajo, sindicato anarquista fundado en 1910, tras la Semana Trágica de Barcelona. En la línea con el ideario anarquista, defendía la huelga general como instrumento revolucionario, la acción directa y el comunismo libertario, basado en la organización espontánea de la clase obrera, sin partidos ni dirigentes ni Estado. Su influencia fue notable en la zona industrial catalana, parte de Aragón y el campo andaluz.`,
+        "Desastre de Annual": `Derrota militar del ejército español ante las tropas rifeñas (Marruecos) de Abd-el-Krim, en julio de 1921. El desastre fue propiciado por los errores tácticos cometidos por el General Silvestre, en su intento de llegar a Alhucemas desde Melilla para someter a las tribus rifeñas. El desastre tuvo un alcance de tragedia, con más de 13000 bajas, entre muertos, y prisioneros, y supuso el total desprestigio del ejército español. Tuvo importantes consecuencias políticas ya que se exigió responsabilidades al Ejército, al Rey y a los partidos dinásticos, redactándose el informe Picasso en 1922.`,
+        "Pacto de San Sebastián": `Acuerdo firmado por republicanos, autonomistas gallegos y nacionalistas catalanes, a los que se unen también los socialistas y anarquistas, en agosto de 1930. Se proponen instaurar una República, mediante un alzamiento militar apoyado por civiles para lo que crearon un Comité Revolucionario`,
+        "Clara Campoamor": `Destacada política y feminista española que desempeñó un papel fundamental en la conquista de los derechos políticos de las mujeres en España durante la Segunda República. Campoamor abogó por la igualdad de género y la participación de las mujeres en la vida política. Su contribución más notable fue la defensa del sufragio femenino en las Cortes Constituyentes de 1931, que culminó con la inclusión del derecho al voto de las mujeres en la nueva Constitución. A través de su activismo y valentía, Clara Campoamor dejó un legado perdurable en la lucha por la igualdad de género y los derechos humanos.`,
+        "Sanjurjada": `Golpe militar protagonizado desde Sevilla por el General Sanjurjo, en el verano de 1932. El levantamiento se justificó por el peligro que para España constituían la aprobación del Estatuto de Cataluña, las reformas militar y agraria y la política religiosa del gobierno republicano-socialista. Los sublevados confiaban en el apoyo masivo del ejército y de la población civil, que no se produjeron, por lo que el golpe fracasó y Sanjurjo fue detenido, juzgado y condenado.`
+    };
+
+    // --- NAVEGACIÓN ---
+    function showGame(id) {
+        document.querySelectorAll('.game-area').forEach(div => div.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        hideFeedback();
+    }
+
+    function hideFeedback() {
+        const fb = document.getElementById('feedback-global');
+        fb.style.display = 'none';
+        fb.className = 'feedback';
+    }
+
+    function showFeedback(text, type) {
+        const fb = document.getElementById('feedback-global');
+        fb.innerText = text;
+        fb.className = 'feedback ' + type;
+        fb.style.display = 'block';
+    }
+
+    // --- LÓGICA RETO CRONOLÓGICO (UNO A UNO) ---
+    let ordenCorrectoReto = [];
+    let seleccionUsuarioReto = [];
+
+    function iniciarReto() {
+        hideFeedback();
+        seleccionUsuarioReto = [];
+        const cantInput = document.getElementById('cantidad-reto');
+        let cant = parseInt(cantInput.value) || 5;
+        cant = Math.min(Math.max(cant, 2), 20);
+
+        const keys = Object.keys(TERMINOS_HISTORIA);
+        const seleccionados = keys.sort(() => 0.5 - Math.random()).slice(0, cant);
+        
+        ordenCorrectoReto = [...seleccionados].sort((a, b) => TERMINOS_HISTORIA[a] - TERMINOS_HISTORIA[b]);
+        
+        const desordenados = [...seleccionados].sort(() => 0.5 - Math.random());
+        
+        // Dibujar botones
+        const pool = document.getElementById('pool-terminos');
+        pool.innerHTML = "";
+        desordenados.forEach(term => {
+            const btn = document.createElement('button');
+            btn.innerText = term;
+            btn.className = "term-btn";
+            btn.onclick = () => seleccionarTermino(term, btn);
+            pool.appendChild(btn);
+        });
+
+        document.getElementById('caja-seleccion').innerHTML = '<span style="color: #666; font-style: italic;">Haz clic en los botones de arriba...</span>';
+        document.getElementById('btn-comprobar-cron').style.display = "none";
+        document.getElementById('pantalla-reto').style.display = 'block';
+    }
+
+    function seleccionarTermino(term, btn) {
+        if (seleccionUsuarioReto.length === 0) {
+            document.getElementById('caja-seleccion').innerHTML = "";
+        }
+        
+        seleccionUsuarioReto.push(term);
+        btn.disabled = true;
+        btn.style.opacity = "0.4";
+
+        const badge = document.createElement('span');
+        badge.className = "order-badge";
+        badge.innerText = `${seleccionUsuarioReto.length}. ${term}`;
+        document.getElementById('caja-seleccion').appendChild(badge);
+
+        if (seleccionUsuarioReto.length === ordenCorrectoReto.length) {
+            document.getElementById('btn-comprobar-cron').style.display = "inline-block";
+        }
+    }
+
+    function verificarCronologia() {
+        const esCorrecto = JSON.stringify(seleccionUsuarioReto) === JSON.stringify(ordenCorrectoReto);
+        if (esCorrecto) {
+            showFeedback("¡EXCELENTE! Los has ordenado perfectamente.", "correct");
+        } else {
+            showFeedback("Incorrecto. El orden era: " + ordenCorrectoReto.join(" → "), "incorrect");
+        }
+        document.getElementById('btn-comprobar-cron').style.display = "none";
+    }
+
+    // --- LÓGICA VOCABULARIO (CON MEDIA) ---
+    let listaExamen = [];
+    let idxPregunta = 0;
+    let aciertos = 0;
+    let termActual = "";
+
+    function iniciarExamen() {
+        hideFeedback();
+        document.getElementById('resultado-final-vocabulario').style.display = 'none';
+        let cant = parseInt(document.getElementById('cantidad-vocabulario').value) || 5;
+        const keys = Object.keys(VOCABULARIO_HISTORIA);
+        cant = Math.min(Math.max(cant, 1), keys.length);
+
+        listaExamen = keys.sort(() => 0.5 - Math.random()).slice(0, cant);
+        idxPregunta = 0;
+        aciertos = 0;
+
+        document.getElementById('pantalla-examen').style.display = 'block';
+        cargarPregunta();
+    }
+
+    function cargarPregunta() {
+        hideFeedback();
+        termActual = listaExamen[idxPregunta];
+        document.getElementById('contador-preguntas').innerText = `Definición ${idxPregunta + 1} de ${listaExamen.length}`;
+        document.getElementById('definicion-display').innerText = VOCABULARIO_HISTORIA[termActual];
+        
+        const inp = document.getElementById('respuesta-vocabulario');
+        inp.value = "";
+        inp.disabled = false;
+        inp.focus();
+
+        document.getElementById('btn-validar-vocab').style.display = "inline-block";
+        document.getElementById('btn-siguiente-vocab').style.display = "none";
+    }
+
+    function verificarVocabulario() {
+        const res = document.getElementById('respuesta-vocabulario').value.trim();
+        if(!res) return;
+
+        document.getElementById('respuesta-vocabulario').disabled = true;
+        document.getElementById('btn-validar-vocab').style.display = "none";
+
+        if (res.toLowerCase() === termActual.toLowerCase()) {
+            aciertos++;
+            showFeedback("¡CORRECTO!", "correct");
+        } else {
+            showFeedback(`INCORRECTO. Es: ${termActual}`, "incorrect");
+        }
+
+        const btnSig = document.getElementById('btn-siguiente-vocab');
+        btnSig.style.display = "inline-block";
+        btnSig.innerText = (idxPregunta === listaExamen.length - 1) ? "Ver Nota Final" : "Siguiente";
+    }
+
+    function siguientePreguntaExamen() {
+        idxPregunta++;
+        if (idxPregunta < listaExamen.length) {
+            cargarPregunta();
+        } else {
+            const nota = ((aciertos / listaExamen.length) * 10).toFixed(2);
+            document.getElementById('pantalla-examen').style.display = 'none';
+            const resDiv = document.getElementById('resultado-final-vocabulario');
+            resDiv.innerHTML = `<h3>Resultado</h3>Aciertos: ${aciertos}/${listaExamen.length}<span class="score-number">${nota}</span>`;
+            resDiv.style.display = 'block';
+        }
+    }
+</script>
+</body>
+</html>
