@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards de Historia de España</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22;
+            --bg: #f4f7f6;
+            --text: #333;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+        }
+
+        .info {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        /* Contenedor principal de la tarjeta */
+        .flashcard-container {
+            perspective: 1000px;
+            width: 90%;
+            max-width: 550px;
+            height: 350px;
+            cursor: pointer;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            border-radius: 15px;
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* Caras de la tarjeta */
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            box-sizing: border-box;
+            border-radius: 15px;
+            background: white;
+            overflow: hidden;
+        }
+
+        /* Parte delantera (Término) */
+        .card-front {
+            border-bottom: 8px solid var(--accent);
+            color: var(--primary);
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Parte trasera (Definición) */
+        .card-back {
+            background-color: white;
+            color: #444;
+            transform: rotateY(180deg);
+            font-size: 1rem;
+            line-height: 1.5;
+            text-align: justify;
+            display: block; /* Para permitir el scroll si es necesario */
+            overflow-y: auto; /* Scroll vertical para textos largos */
+        }
+
+        .card-back h3 {
+            margin-top: 0;
+            color: var(--accent);
+            font-size: 1.2rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        /* Controles */
+        .controls {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .instructions {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+
+        kbd {
+            background: #ddd;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        /* Animación de desplazamiento */
+        @keyframes slide {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .changing {
+            animation: slide 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="info">
+        Tarjeta <span id="current-idx">1</span> de <span id="total-cards">0</span>
+    </div>
+
+    <div class="flashcard-container" onclick="toggleFlip()">
+        <div class="flashcard" id="card">
+            <!-- Frontal -->
+            <div class="card-face card-front">
+                <div id="term-text">Cargando...</div>
+            </div>
+            
+            <!-- Trasera -->
+            <div class="card-face card-back">
+                <h3 id="term-title"></h3>
+                <div id="definition-text">Cargando...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="instructions">
+        Usa <kbd>Espacio</kbd> para girar | <kbd>←</kbd> <kbd>→</kbd> para navegar
+    </div>
+
+    <script>
+        const mazo = [
+            { 
+                termino: "CEDA", 
+                definicion: "Confederación Española de Derechas Autónomas. Partido político católico y autoritario fundado en Madrid en marzo 1933 a partir de la integración de diversas fuerzas de derechas. Liderado por José María Gil Robles se convirtió en el principal elemento de oposición a la política del gobierno de coalición republicano-socialista. En las elecciones de noviembre de 1933 logró la victoria, aunque en principio no formó parte del gobierno de Lerroux. Su posterior participación en el gobierno dará lugar a la insurrección de la izquierda en octubre de 1934. En su seno se desarrollará un importante movimiento golpista, tras la victoria del Frente Popular." 
+            },
+            { 
+                termino: "José Antonio Primo de Rivera", 
+                definicion: "Fundador de la Falange Española, en 1933, partido de corte fascista que poco después se fusionaría con las JONS de Ramiro Ledesma y Onésimo Redondo, formando la Falange Española de las JONS. Defendía postulados fascistas, fascinado por Hitler y Mussolini, y planteaba lo que denominó `la dialéctica de los puños y las pistolas`, una mezcla de acción política y agitación callejera violenta. Su política de violencia callejera, sus postulados fascistas y su apoyo a posiciones golpistas, llevó a su detención por parte del gobierno del Frente Popular. Una vez iniciada la Guerra Civil, fue condenado a muerte y fusilado. Su figura fue utilizada por el franquismo como símbolo de los valores del movimiento nacional." 
+            },
+            { 
+                termino: "Frente Popular", 
+                definicion: "Alianza electoral de partidos republicanos y obreros (socialistas, comunistas y anarquistas) que, con vistas a las elecciones de febrero de 1936, pretendía evitar el avance de los grupos de derecha. El programa electoral incluía como punto fundamental la amnistía de los procesados por los sucesos de octubre de 1934, la aplicación de la legislación del Bienio Reformista y el restablecimiento de la Constitución del 31. Esta alianza logró obtener una ajustada victoria en las elecciones y gobernar hasta el estallido de la Guerra Civil." 
+            },
+            { 
+                termino: "Batalla del Ebro", 
+                definicion: "Fue la batalla más importante durante la Guerra Civil española que se desarrolla entre julio y noviembre del 38. El Gobierno de la República tomó la decisión de iniciarla a fin de aliviar la presión de los rebeldes sobre otros frentes. En julio de 1938 el ejército republicano cruzó el río Ebro y conquistó una franja de terreno en la otra orilla, pero Franco reaccionó enseguida y tras durísimos combates logró desgastar y derrotar al ejército de la República, en noviembre de 1938. Para Franco se abría el camino hacia Cataluña, y hacia la victoria." 
+            },
+            { 
+                termino: "Brigadas Internacionales", 
+                definicion: "Cuerpo militar de voluntarios extranjeros, de muy diferentes nacionalidades creado en 1936, que vinieron a España a ayudar al bando republicano durante la Guerra Civil. Las Brigadas fueron organizadas por la III Internacional comunista, aunque sus miembros pertenecían a distintas tendencias políticas de izquierda. Su papel fue decisivo en la defensa de Madrid a fines de 1936 y participaron activamente, como fuerzas de choque en todos los combates de los diversos frentes. A fines de 1938 abandonaron España." 
+            },
+            { 
+                termino: "Entrevista de Hendaya", 
+                definicion: "Encuentro entre Hitler y Franco, que tuvo lugar en la estación de tren de esa ciudad, en octubre de 1940, en el marco de la II Guerra Mundial. El objetivo de la entrevista era intentar resolver los desacuerdos sobre las condiciones españolas para su entrada en la guerra del lado de las potencias del Eje. La entrevista terminó sin acuerdo, aunque se redactó un Protocolo secreto, que implicaba la adhesión de España al Pacto de Acero, lo que suponía la posibilidad de que entrase en la guerra, en apoyo de Alemania, si se cumplían determinadas condiciones. España no entró directamente en la guerra, aunque favoreció el alistamiento de la división Azul, que luchó con los alemanes en la campaña de Rusia." 
+            },
+            { 
+                termino: "Nacionalcatolicismo", 
+                definicion: "Fundamento ideológico del franquismo, eje vertebrador del nuevo Estado totalitario. Se basaba en una defensa a ultranza de la sagrada unidad de la patria y en la alianza con la iglesia católica. Esta alianza permitió a Franco su legitimación como ganador de la cruzada, y a la iglesia ejercer un control absoluto sobre la vida social, educativa, cultural y moral de la España franquista, y el Estado intervenía en el presupuesto del clero y en el nombramiento de obispos. La identificación fue tal, que se impuso una estricta moral católica, pública y privada, cuyo incumplimiento llegó a castigarse en el Código Penal." 
+            },
+            { 
+                termino: "Leyes Fundamentales del Régimen", 
+                definicion: "Conjunto de 8 normas que intentan dar un contenido constitucional al régimen franquista, permitiendo la institucionalización de este. Siete de ellas fueron promulgadas entre 1936 y 1967, la octava fue la Ley para la Reforma Política, aprobada durante la Transición, en 1977, ya muerto Franco, que con el mismo rango modificó el marco legislativo y permitió llevar a cabo la reforma política. Estas leyes eran el reflejo del poder legislativo del jefe del Estado y de su función constituyente, por encima de cualquier institución de carácter legislativo. Fueron un total de 7 leyes, por orden cronológico: Fuero del Trabajo, Ley constitutiva de las Cortes, Fuero de los españoles, Ley de Referéndum Nacional, Ley de Sucesión a la Jefatura del Estado, Ley de Principios del Movimiento Nacional y Ley Orgánica del Estado." 
+            },
+            { 
+                termino: "Sección Femenina de la Falange", 
+                definicion: "Fue una organización creada institucionalmente en junio de 1934, parte del partido de la Falange Española y de las JONS (movimiento nacional). En el Decreto de Unificación se declaró que la Sección Femenina de la FET sería la organización encargada de educar y movilizar a la población femenina. Así, la Sección Femenina de FET y de las JONS se convirtió en la única organización de mujeres reconocida por Franco. Fue Pilar Primo de Rivera, hermana de José Antonio, quien creó y lideró la organización durante 43 años, es decir, hasta su disolución en 1977." 
+            },
+            { 
+                termino: "Adolfo Suárez", 
+                definicion: "Presidente del gobierno de España desde julio de 1976 hasta enero de 1981. Su acción política fue determinante para la transición pacífica desde la dictadura a la democracia; transición basada en el consenso político y fundamentada legalmente en la Ley para la Reforma política, aprobada en referéndum en 1976. Logró el consenso con el resto de fuerzas políticas en los Pactos de la Moncloa de 1977 y en la Constitución de 1978 estableciendo una monarquía parlamentaria. Lideró la vida política al frente de su partido UCD, hasta su dimisión en 1981." 
+            },
+            { 
+                termino: "Dolores Ibárruri", 
+                definicion: "Dolores Ibárruri Gómez, conocida como La Pasionaria (Gallarta, 9 de diciembre de 1895-Madrid, 12 de noviembre de 1989), política española, líder del Partido Comunista de España desde su fundación, fue elegida diputada en las elecciones de febrero de 1936. Su motivación fue acabar con las desigualdades entre las clases sociales y de las mujeres. Se exilió en la Unión Soviética al finalizar la Guerra Civil. Regresó a España tras el fin de la dictadura franquista y volvió a ejercer de diputada en la Legislatura Constituyente de España entre 1977 y 1979. Suyo fue el famoso discurso de No pasarán, que pronunció en el Ministerio de Gobernación el 19 de julio de 1936." 
+            },
+            { 
+                termino: "Felipe González", 
+                definicion: "Presidente del gobierno desde 1982, cuando ganó las elecciones al frente del PSOE, hasta 1996, en que las perdió frente al PP de José María Aznar. Su acción de gobierno transformó totalmente la sociedad española, con la entrada en la OTAN y en la CEE, además de llevar a cabo un proceso de modernización económica y social, tendente a la consolidación de un Estado de bienestar. Los últimos años de su gobierno estuvieron, sin embargo, marcados por la corrupción y las acusaciones de guerra sucia contra ETA." 
+            },
+            { 
+                termino: "Pactos de la Moncloa", 
+                definicion: "Acuerdos suscritos, en octubre de 1977, entre el gobierno de Adolfo Suárez y los partidos de la oposición, con apoyo de los sindicatos y la patronal, con el fin de hacer frente a la recesión económica. Pero no fueron sólo una serie de medidas económicas; incluyeron también un proyecto de reforma del mercado laboral, de la Seguridad Social y de la Sanidad, sentando las bases de un Estado social mucho más moderno." 
+            },
+            { 
+                termino: "Estado de las Autonomías", 
+                definicion: "Forma de organización político-administrativa del Estado español establecida en el título VIII de la Constitución de 1978. Establece la división de España en 17 Comunidades y dos ciudades autónomas, con instituciones propias, elegidas por los ciudadanos y con una serie de competencias en materia legislativa y de gobierno. El Estado se reserva las competencias en aspectos fundamentales para su seguridad y se mantiene la soberanía de todos los ciudadanos españoles como la única fuente de poder" 
+            },
+            { 
+                termino: "23-F", 
+                definicion: "Intento de golpe de estado. Los hechos sucedieron durante la sesión de investidura de Leopoldo Calvo-Sotelo el 23 de febrero de 1981, que iba a ser proclamado como nuevo presidente de la nación. Un grupo reducido de militares encabezados por el teniente coronel Tejero entró en el Congreso con el propósito de que el ejército se sumara a la rebelión militar. Se podría decir que el país vivía un periodo de incertidumbre. El objetivo del golpe era regresar a un régimen similar al anterior. El levantamiento militar fue abortado por la intervención del rey Juan Carlos l, que se dirigió a la nación por televisión como máximo responsable de las fuerzas armadas y desautorizó a los golpistas." 
+            },
+            { 
+                termino: "ETA", 
+                definicion: "Euzkadi ta Askatasuna (Euzkadi y libertad). Organización terrorista del nacionalismo radical vasco, surgida en los años 50 de una escisión de las Juventudes del PNV. De influencia marxista, defendía la liberación de los pueblos a través de la lucha armada. A partir de 1968 empezó a cometer asesinatos contra las fuerzas del orden. En 1973 asesinó al presidente del Gobierno Carrero Blanco. Establecida la democracia, la organización sufrió escisiones, una parte se acogió a la amnistía y abandonó las armas, pero otra siguió con el terrorismo con una nueva estrategia: atentados masivos contra civiles. En 2011 comunicó el fin de la lucha armada.." 
+            },
+            { 
+                termino: "Felipe VI", 
+                definicion: "Monarca y jefe del Estado español en la actualidad. El 19 de junio de 2014, tras abdicar la corona su padre D. Juan Carlos I, Felipe VI juraba la Constitución, las leyes, los derechos de los ciudadanos y de las Comunidades Autónomas y era proclamado Rey de España. El recién proclamado Monarca anunció una Monarquía renovada para un tiempo nuevo y señaló que la Corona debe velar por la dignidad de la institución, preservar su prestigio y observar una conducta íntegra, honesta y transparente. También prometió ilusión y lealtad a la Democracia en el ejercicio de su función." 
+            }
+        ];
+
+        let currentIdx = 0;
+        const card = document.getElementById('card');
+        const termText = document.getElementById('term-text');
+        const termTitle = document.getElementById('term-title');
+        const defText = document.getElementById('definition-text');
+        const currentIdxEl = document.getElementById('current-idx');
+        const totalCardsEl = document.getElementById('total-cards');
+
+        function updateCard() {
+            card.parentElement.classList.add('changing');
+            card.classList.remove('flipped');
+            
+            setTimeout(() => {
+                const item = mazo[currentIdx];
+                termText.innerText = item.termino;
+                termTitle.innerText = item.termino;
+                defText.innerText = item.definicion;
+                currentIdxEl.innerText = currentIdx + 1;
+                totalCardsEl.innerText = mazo.length;
+                
+                // Resetear scroll de la definición
+                document.querySelector('.card-back').scrollTop = 0;
+                card.parentElement.classList.remove('changing');
+            }, 150);
+        }
+
+        function toggleFlip() {
+            card.classList.toggle('flipped');
+        }
+
+        function nextCard() {
+            if (currentIdx < mazo.length - 1) {
+                currentIdx++;
+                updateCard();
+            }
+        }
+
+        function prevCard() {
+            if (currentIdx > 0) {
+                currentIdx--;
+                updateCard();
+            }
+        }
+
+        // Teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'Enter') {
+                e.preventDefault();
+                toggleFlip();
+            } else if (e.code === 'ArrowRight') {
+                nextCard();
+            } else if (e.code === 'ArrowLeft') {
+                prevCard();
+            }
+        });
+
+        // Inicializar
+        updateCard();
+    </script>
+</body>
+</html>
