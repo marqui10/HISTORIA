@@ -1,1 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Historia de España</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #e67e22;
+            --bg: #f4f7f6;
+            --text: #333;
+            --white: #ffffff;
+            --accent: #3498db;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--secondary); padding-bottom: 10px; }
+
+        .menu-buttons { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            transition: 0.2s;
+            margin: 5px;
+        }
+
+        button:hover { background: var(--secondary); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        .game-area { margin-top: 20px; display: none; }
+        .active { display: block; }
+
+        /* Estilos para el reto uno a uno */
+        .pool-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            background: #f1f1f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .selection-box {
+            min-height: 50px;
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #eef7ff;
+        }
+
+        .term-btn {
+            background: var(--accent);
+            font-size: 0.9em;
+        }
+
+        .order-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin: 4px;
+            font-size: 0.85em;
+        }
+
+        .definition-text { font-style: italic; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; line-height: 1.6; }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .feedback { font-weight: bold; margin-top: 15px; padding: 10px; border-radius: 4px; display: none; text-align: center; }
+        .correct { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .incorrect { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .score-display {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+            border: 2px dashed var(--primary);
+        }
+        .score-number { color: var(--secondary); font-size: 2.5em; font-weight: bold; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📚 Historia de España (2025-2026) - 3º TRIMESTRE</h1>
+    
+    <div class="menu-buttons">
+        <button onclick="showGame('reto-cronologico')">Reto Cronológico</button>
+        <button onclick="showGame('examen-vocabulario')">Examen de Vocabulario</button>
+    </div>
+
+    <hr>
+
+    <div id="reto-cronologico" class="game-area">
+        <h2>Reto: Ordena Cronológicamente</h2>
+        <p>¿Cuántos términos quieres ordenar? (2-20):</p>
+        <input type="number" id="cantidad-reto" min="2" max="20" value="5">
+        <button onclick="iniciarReto()">Generar Reto</button>
+        
+        <div id="pantalla-reto" style="display:none; margin-top:20px;">
+            <p><strong>Haz clic en los términos en orden (del más antiguo al más reciente):</strong></p>
+            
+            <div id="pool-terminos" class="pool-container"></div>
+            
+            <p><strong>Tu orden seleccionado:</strong></p>
+            <div id="caja-seleccion" class="selection-box">
+                <span style="color: #666; font-style: italic;">Haz clic en los botones de arriba...</span>
+            </div>
+            
+            <button id="btn-comprobar-cron" onclick="verificarCronologia()" style="display:none; background: #27ae60;">Comprobar Orden</button>
+            <button onclick="iniciarReto()" style="background: #95a5a6;">Reiniciar / Nuevo</button>
+        </div>
+    </div>
+
+    <div id="examen-vocabulario" class="game-area">
+        <h2>Examen de Vocabulario</h2>
+        <p>¿Cuántas definiciones quieres en este examen?</p>
+        <input type="number" id="cantidad-vocabulario" min="1" max="20" value="5">
+        <button onclick="iniciarExamen()">Empezar Examen</button>
+        
+        <div id="pantalla-examen" style="display:none; margin-top:20px;">
+            <h3 id="contador-preguntas" style="color: var(--primary);"></h3>
+            <div class="definition-text" id="definicion-display"></div>
+            <input type="text" id="respuesta-vocabulario" placeholder="Escribe el término exacto..." onkeypress="if(event.key==='Enter') verificarVocabulario()">
+            <button id="btn-validar-vocab" onclick="verificarVocabulario()">Validar Respuesta</button>
+            <button id="btn-siguiente-vocab" onclick="siguientePreguntaExamen()" style="display:none; background-color: #27ae60;">Siguiente Pregunta</button>
+        </div>
+
+        <div id="resultado-final-vocabulario" class="score-display" style="display:none;"></div>
+    </div>
+
+    <div id="feedback-global" class="feedback"></div>
+</div>
+
+<script>
+    // --- DATOS ÍNTEGROS DE LOS ARCHIVOS .PY ---
+    const TERMINOS_HISTORIA = {
+        "CEDA": 1, "José Antonio Primo de Rivera": 2, "Frente Popular": 3, "Batalla del Ebro": 4, "Brigadas Internacionales": 5, "Entrevista de Hendaya": 6, "Nacionalcatolicismo": 7, "Leyes Fundamentales del Régimen": 8, "Sección Femenina de Falange": 9, "Adolfo Suárez": 10, "Dolores Ibárruri": 11, "Felipe González": 12, "Pactos de la Moncloa": 13, "Estado de las Autonomías": 14, "23-F": 15, "ETA": 16, "Felipe VI": 17
+    };
+
+    const VOCABULARIO_HISTORIA = {
+        "CEDA": `Confederación Española de Derechas Autónomas. Partido político católico y autoritario fundado en Madrid en marzo 1933 a partir de la integración de diversas fuerzas de derechas. Liderado por José María Gil Robles se convirtió en el principal elemento de oposición a la política del gobierno de coalición republicano-socialista. En las elecciones de noviembre de 1933 logró la victoria, aunque en principio no formó parte del gobierno de Lerroux. Su posterior participación en el gobierno dará lugar a la insurrección de la izquierda en octubre de 1934. En su seno se desarrollará un importante movimiento golpista, tras la victoria del Frente Popular.`,
+        "José Antonio Primo de Rivera": `Fundador de la Falange Española, en 1933, partido de corte fascista que poco después se fusionaría con las JONS de Ramiro Ledesma y Onésimo Redondo, formando la Falange Española de las JONS. Defendía postulados fascistas, fascinado por Hitler y Mussolini, y planteaba lo que denominó "la dialéctica de los puños y las pistolas", una mezcla de acción política y agitación callejera violenta. Su política de violencia callejera, sus postulados fascistas y su apoyo a posiciones golpistas, llevó a su detención por parte del gobierno del Frente Popular. Una vez iniciada la Guerra Civil, fue condenado a muerte y fusilado. Su figura fue utilizada por el franquismo como símbolo de los valores del movimiento nacional.`,
+        "Frente Popular": `Alianza electoral de partidos republicanos y obreros (socialistas, comunistas y anarquistas) que, con vistas a las elecciones de febrero de 1936, pretendía evitar el avance de los grupos de derecha. El programa electoral incluía como punto fundamental la amnistía de los procesados por los sucesos de octubre de 1934, la aplicación de la legislación del Bienio Reformista y el restablecimiento de la Constitución del 31. Esta alianza logró obtener una ajustada victoria en las elecciones y gobernar hasta el estallido de la Guerra Civil.`,
+        "Batalla del Ebro": `Fue la batalla más importante durante la Guerra Civil española que se desarrolla entre julio y noviembre del 38. El Gobierno de la República tomó la decisión de iniciarla a fin de aliviar la presión de los rebeldes sobre otros frentes. En julio de 1938 el ejército republicano cruzó el río Ebro y conquistó una franja de terreno en la otra orilla, pero Franco reaccionó enseguida y tras durísimos combates logró desgastar y derrotar al ejército de la República, en noviembre de 1938. Para Franco se abría el camino hacia Cataluña, y hacia la victoria.`,
+        "Brigadas Internacionales": `Cuerpo militar de voluntarios extranjeros, de muy diferentes nacionalidades creado en 1936, que vinieron a España a ayudar al bando republicano durante la Guerra Civil. Las Brigadas fueron organizadas por la III Internacional comunista, aunque sus miembros pertenecían a distintas tendencias políticas de izquierda. Su papel fue decisivo en la defensa de Madrid a fines de 1936 y participaron activamente, como fuerzas de choque en todos los combates de los diversos frentes. A fines de 1938 abandonaron España.`,
+        "Entrevista de Hendaya": `Encuentro entre Hitler y Franco, que tuvo lugar en la estación de tren de esa ciudad, en octubre de 1940, en el marco de la II Guerra Mundial. El objetivo de la entrevista era intentar resolver los desacuerdos sobre las condiciones españolas para su entrada en la guerra del lado de las potencias del Eje. La entrevista terminó sin acuerdo, aunque se redactó un Protocolo secreto, que implicaba la adhesión de España al Pacto de Acero, lo que suponía la posibilidad de que entrase en la guerra, en apoyo de Alemania, si se cumplían determinadas condiciones. España no entró directamente en la guerra, aunque favoreció el alistamiento de la división Azul, que luchó con los alemanes en la campaña de Rusia.`,
+        "Nacionalcatolicismo": `Fundamento ideológico del franquismo, eje vertebrador del nuevo Estado totalitario. Se basaba en una defensa a ultranza de la "sagrada unidad de la patria" y en la alianza con la iglesia católica. Esta alianza permitió a Franco su legitimación como ganador de la "cruzada", y a la iglesia ejercer un control absoluto sobre la vida social, educativa, cultural y moral de la España franquista, y el Estado intervenía en el presupuesto del clero y en el nombramiento de obispos. La identificación fue tal, que se impuso una estricta moral católica, pública y privada, cuyo incumplimiento llegó a castigarse en el Código Penal.`,
+        "Leyes Fundamentales del Régimen": `Conjunto de 8 normas que intentan dar un contenido constitucional al régimen franquista, permitiendo la institucionalización de este. Siete de ellas fueron promulgadas entre 1936 y 1967, la octava fue la Ley para la Reforma Política, aprobada durante la Transición, en 1977, ya muerto Franco, que con el mismo rango modificó el marco legislativo y permitió llevar a cabo la reforma política. Estas leyes eran el reflejo del poder legislativo del jefe del Estado y de su función constituyente, por encima de cualquier institución de carácter legislativo. Fueron un total de 7 leyes, por orden cronológico: Fuero del Trabajo, Ley constitutiva de las Cortes, Fuero de los españoles, Ley de Referéndum Nacional, Ley de Sucesión a la Jefatura del Estado, Ley de Principios del Movimiento Nacional y Ley Orgánica del Estado.`,
+        "Sección Femenina de Falange": `Fue una organización creada institucionalmente en junio de 1934, parte del partido de la Falange Española y de las JONS (movimiento nacional). En el Decreto de Unificación se declaró que la Sección Femenina de la FET sería la organización encargada de educar y movilizar a la población femenina. Así, la Sección Femenina de FET y de las JONS se convirtió en la única organización de mujeres reconocida por Franco. Fue Pilar Primo de Rivera, hermana de José Antonio, quien creó y lideró la organización durante 43 años, es decir, hasta su disolución en 1977.`,
+        "Adolfo Suárez": `Presidente del gobierno de España desde julio de 1976 hasta enero de 1981. Su acción política fue determinante para la transición pacífica desde la dictadura a la democracia; transición basada en el consenso político y fundamentada legalmente en la Ley para la Reforma política, aprobada en referéndum en 1976. Logró el consenso con el resto de fuerzas políticas en los Pactos de la Moncloa de 1977 y en la Constitución de 1978 estableciendo una monarquía parlamentaria. Lideró la vida política al frente de su partido UCD, hasta su dimisión en 1981.`,
+        "Dolores Ibáurri": `Dolores Ibárruri Gómez, conocida como La Pasionaria (Gallarta, 9 de diciembre de 1895-Madrid, 12 de noviembre de 1989), política española, líder del Partido Comunista de España desde su fundación, fue elegida diputada en las elecciones de febrero de 1936. Su motivación fue acabar con las desigualdades entre las clases sociales y de las mujeres. Se exilió en la Unión Soviética al finalizar la Guerra Civil. Regresó a España tras el fin de la dictadura franquista y volvió a ejercer de diputada en la Legislatura Constituyente de España entre 1977 y 1979. Suyo fue el famoso discurso de No pasarán, que pronunció en el Ministerio de Gobernación el 19 de julio de 1936.`,
+        "Felipe González": `Presidente del gobierno desde 1982, cuando ganó las elecciones al frente del PSOE, hasta 1996, en que las perdió frente al PP de José María Aznar. Su acción de gobierno transformó totalmente la sociedad española, con la entrada en la OTAN y en la CEE, además de llevar a cabo un proceso de modernización económica y social, tendente a la consolidación de un Estado de bienestar. Los últimos años de su gobierno estuvieron, sin embargo, marcados por la corrupción y las acusaciones de guerra sucia contra ETA.`,
+        "Pactos de la Moncloa": `Acuerdos suscritos, en octubre de 1977, entre el gobierno de Adolfo Suárez y los partidos de la oposición, con apoyo de los sindicatos y la patronal, con el fin de hacer frente a la recesión económica. Pero no fueron sólo una serie de medidas económicas; incluyeron también un proyecto de reforma del mercado laboral, de la Seguridad Social y de la Sanidad, sentando las bases de un Estado social mucho más moderno.`,
+        "Estado de las Autonomías": `Forma de organización político-administrativa del Estado español establecida en el título VIII de la Constitución de 1978. Establece la división de España en 17 Comunidades y dos ciudades autónomas, con instituciones propias, elegidas por los ciudadanos y con una serie de competencias en materia legislativa y de gobierno. El Estado se reserva las competencias en aspectos fundamentales para su seguridad y se mantiene la soberanía de todos los ciudadanos españoles como la única fuente de poder.`,
+        "23-F": `Intento de golpe de estado. Los hechos sucedieron durante la sesión de investidura de Leopoldo Calvo-Sotelo el 23 de febrero de 1981, que iba a ser proclamado como nuevo presidente de la nación. Un grupo reducido de militares encabezados por el teniente coronel Tejero entró en el Congreso con el propósito de que el ejército se sumara a la rebelión militar. Se podría decir que el país vivía un periodo de incertidumbre. El objetivo del golpe era regresar a un régimen similar al anterior. El levantamiento militar fue abortado por la intervención del rey Juan Carlos l, que se dirigió a la nación por televisión como máximo responsable de las fuerzas armadas y desautorizó a los golpistas.`,
+        "ETA": `Euzkadi ta Askatasuna (Euzkadi y libertad). Organización terrorista del nacionalismo radical vasco, surgida en los años 50 de una escisión de las Juventudes del PNV. De influencia marxista, defendía la liberación de los pueblos a través de la lucha armada. A partir de 1968 empezó a cometer asesinatos contra las fuerzas del orden. En 1973 asesinó al presidente del Gobierno Carrero Blanco. Establecida la democracia, la organización sufrió escisiones, una parte se acogió a la amnistía y abandonó las armas, pero otra siguió con el terrorismo con una nueva estrategia: atentados masivos contra civiles. En 2011 comunicó el fin de la lucha armada.`,
+        "Felipe VI": `Monarca y jefe del Estado español en la actualidad. El 19 de junio de 2014, tras abdicar la corona su padre D. Juan Carlos I, Felipe VI juraba la Constitución, las leyes, los derechos de los ciudadanos y de las Comunidades Autónomas y era proclamado Rey de España. El recién proclamado Monarca anunció "una Monarquía renovada para un tiempo nuevo" y señaló que la Corona debe "velar por la dignidad de la institución, preservar su prestigio y observar una conducta íntegra, honesta y transparente". También prometió ilusión y lealtad a la Democracia en el ejercicio de su función.`
+    };
+
+    // --- NAVEGACIÓN ---
+    function showGame(id) {
+        document.querySelectorAll('.game-area').forEach(div => div.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        hideFeedback();
+    }
+
+    function hideFeedback() {
+        const fb = document.getElementById('feedback-global');
+        fb.style.display = 'none';
+        fb.className = 'feedback';
+    }
+
+    function showFeedback(text, type) {
+        const fb = document.getElementById('feedback-global');
+        fb.innerText = text;
+        fb.className = 'feedback ' + type;
+        fb.style.display = 'block';
+    }
+
+    // --- LÓGICA RETO CRONOLÓGICO (UNO A UNO) ---
+    let ordenCorrectoReto = [];
+    let seleccionUsuarioReto = [];
+
+    function iniciarReto() {
+        hideFeedback();
+        seleccionUsuarioReto = [];
+        const cantInput = document.getElementById('cantidad-reto');
+        let cant = parseInt(cantInput.value) || 5;
+        cant = Math.min(Math.max(cant, 2), 20);
+
+        const keys = Object.keys(TERMINOS_HISTORIA);
+        const seleccionados = keys.sort(() => 0.5 - Math.random()).slice(0, cant);
+        
+        ordenCorrectoReto = [...seleccionados].sort((a, b) => TERMINOS_HISTORIA[a] - TERMINOS_HISTORIA[b]);
+        
+        const desordenados = [...seleccionados].sort(() => 0.5 - Math.random());
+        
+        // Dibujar botones
+        const pool = document.getElementById('pool-terminos');
+        pool.innerHTML = "";
+        desordenados.forEach(term => {
+            const btn = document.createElement('button');
+            btn.innerText = term;
+            btn.className = "term-btn";
+            btn.onclick = () => seleccionarTermino(term, btn);
+            pool.appendChild(btn);
+        });
+
+        document.getElementById('caja-seleccion').innerHTML = '<span style="color: #666; font-style: italic;">Haz clic en los botones de arriba...</span>';
+        document.getElementById('btn-comprobar-cron').style.display = "none";
+        document.getElementById('pantalla-reto').style.display = 'block';
+    }
+
+    function seleccionarTermino(term, btn) {
+        if (seleccionUsuarioReto.length === 0) {
+            document.getElementById('caja-seleccion').innerHTML = "";
+        }
+        
+        seleccionUsuarioReto.push(term);
+        btn.disabled = true;
+        btn.style.opacity = "0.4";
+
+        const badge = document.createElement('span');
+        badge.className = "order-badge";
+        badge.innerText = `${seleccionUsuarioReto.length}. ${term}`;
+        document.getElementById('caja-seleccion').appendChild(badge);
+
+        if (seleccionUsuarioReto.length === ordenCorrectoReto.length) {
+            document.getElementById('btn-comprobar-cron').style.display = "inline-block";
+        }
+    }
+
+    function verificarCronologia() {
+        const esCorrecto = JSON.stringify(seleccionUsuarioReto) === JSON.stringify(ordenCorrectoReto);
+        if (esCorrecto) {
+            showFeedback("¡EXCELENTE! Los has ordenado perfectamente.", "correct");
+        } else {
+            showFeedback("Incorrecto. El orden era: " + ordenCorrectoReto.join(" → "), "incorrect");
+        }
+        document.getElementById('btn-comprobar-cron').style.display = "none";
+    }
+
+    // --- LÓGICA VOCABULARIO (CON MEDIA) ---
+    let listaExamen = [];
+    let idxPregunta = 0;
+    let aciertos = 0;
+    let termActual = "";
+
+    function iniciarExamen() {
+        hideFeedback();
+        document.getElementById('resultado-final-vocabulario').style.display = 'none';
+        let cant = parseInt(document.getElementById('cantidad-vocabulario').value) || 5;
+        const keys = Object.keys(VOCABULARIO_HISTORIA);
+        cant = Math.min(Math.max(cant, 1), keys.length);
+
+        listaExamen = keys.sort(() => 0.5 - Math.random()).slice(0, cant);
+        idxPregunta = 0;
+        aciertos = 0;
+
+        document.getElementById('pantalla-examen').style.display = 'block';
+        cargarPregunta();
+    }
+
+    function cargarPregunta() {
+        hideFeedback();
+        termActual = listaExamen[idxPregunta];
+        document.getElementById('contador-preguntas').innerText = `Definición ${idxPregunta + 1} de ${listaExamen.length}`;
+        document.getElementById('definicion-display').innerText = VOCABULARIO_HISTORIA[termActual];
+        
+        const inp = document.getElementById('respuesta-vocabulario');
+        inp.value = "";
+        inp.disabled = false;
+        inp.focus();
+
+        document.getElementById('btn-validar-vocab').style.display = "inline-block";
+        document.getElementById('btn-siguiente-vocab').style.display = "none";
+    }
+
+    function verificarVocabulario() {
+        const res = document.getElementById('respuesta-vocabulario').value.trim();
+        if(!res) return;
+
+        document.getElementById('respuesta-vocabulario').disabled = true;
+        document.getElementById('btn-validar-vocab').style.display = "none";
+
+        if (res.toLowerCase() === termActual.toLowerCase()) {
+            aciertos++;
+            showFeedback("¡CORRECTO!", "correct");
+        } else {
+            showFeedback(`INCORRECTO. Es: ${termActual}`, "incorrect");
+        }
+
+        const btnSig = document.getElementById('btn-siguiente-vocab');
+        btnSig.style.display = "inline-block";
+        btnSig.innerText = (idxPregunta === listaExamen.length - 1) ? "Ver Nota Final" : "Siguiente";
+    }
+
+    function siguientePreguntaExamen() {
+        idxPregunta++;
+        if (idxPregunta < listaExamen.length) {
+            cargarPregunta();
+        } else {
+            const nota = ((aciertos / listaExamen.length) * 10).toFixed(2);
+            document.getElementById('pantalla-examen').style.display = 'none';
+            const resDiv = document.getElementById('resultado-final-vocabulario');
+            resDiv.innerHTML = `<h3>Resultado</h3>Aciertos: ${aciertos}/${listaExamen.length}<span class="score-number">${nota}</span>`;
+            resDiv.style.display = 'block';
+        }
+    }
+</script>
+</body>
+</html>
