@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Historia de España</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #e67e22;
+            --bg: #f4f7f6;
+            --text: #333;
+            --white: #ffffff;
+            --accent: #3498db;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: var(--white);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--secondary); padding-bottom: 10px; }
+
+        .menu-buttons { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: var(--primary);
+            color: white;
+            font-weight: bold;
+            transition: 0.2s;
+            margin: 5px;
+        }
+
+        button:hover { background: var(--secondary); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        .game-area { margin-top: 20px; display: none; }
+        .active { display: block; }
+
+        /* Estilos para el reto uno a uno */
+        .pool-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            background: #f1f1f1;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .selection-box {
+            min-height: 50px;
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #eef7ff;
+        }
+
+        .term-btn {
+            background: var(--accent);
+            font-size: 0.9em;
+        }
+
+        .order-badge {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin: 4px;
+            font-size: 0.85em;
+        }
+
+        .definition-text { font-style: italic; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; line-height: 1.6; }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .feedback { font-weight: bold; margin-top: 15px; padding: 10px; border-radius: 4px; display: none; text-align: center; }
+        .correct { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .incorrect { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .score-display {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+            border: 2px dashed var(--primary);
+        }
+        .score-number { color: var(--secondary); font-size: 2.5em; font-weight: bold; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📚 Historia de España (2025-2026) - 1º Trimestre</h1>
+    
+    <div class="menu-buttons">
+        <button onclick="showGame('reto-cronologico')">Reto Cronológico</button>
+        <button onclick="showGame('examen-vocabulario')">Examen de Vocabulario</button>
+    </div>
+
+    <hr>
+
+    <div id="reto-cronologico" class="game-area">
+        <h2>Reto: Ordena Cronológicamente</h2>
+        <p>¿Cuántos términos quieres ordenar? (2-20):</p>
+        <input type="number" id="cantidad-reto" min="2" max="20" value="5">
+        <button onclick="iniciarReto()">Generar Reto</button>
+        
+        <div id="pantalla-reto" style="display:none; margin-top:20px;">
+            <p><strong>Haz clic en los términos en orden (del más antiguo al más reciente):</strong></p>
+            
+            <div id="pool-terminos" class="pool-container"></div>
+            
+            <p><strong>Tu orden seleccionado:</strong></p>
+            <div id="caja-seleccion" class="selection-box">
+                <span style="color: #666; font-style: italic;">Haz clic en los botones de arriba...</span>
+            </div>
+            
+            <button id="btn-comprobar-cron" onclick="verificarCronologia()" style="display:none; background: #27ae60;">Comprobar Orden</button>
+            <button onclick="iniciarReto()" style="background: #95a5a6;">Reiniciar / Nuevo</button>
+        </div>
+    </div>
+
+    <div id="examen-vocabulario" class="game-area">
+        <h2>Examen de Vocabulario</h2>
+        <p>¿Cuántas definiciones quieres en este examen?</p>
+        <input type="number" id="cantidad-vocabulario" min="1" max="20" value="5">
+        <button onclick="iniciarExamen()">Empezar Examen</button>
+        
+        <div id="pantalla-examen" style="display:none; margin-top:20px;">
+            <h3 id="contador-preguntas" style="color: var(--primary);"></h3>
+            <div class="definition-text" id="definicion-display"></div>
+            <input type="text" id="respuesta-vocabulario" placeholder="Escribe el término exacto..." onkeypress="if(event.key==='Enter') verificarVocabulario()">
+            <button id="btn-validar-vocab" onclick="verificarVocabulario()">Validar Respuesta</button>
+            <button id="btn-siguiente-vocab" onclick="siguientePreguntaExamen()" style="display:none; background-color: #27ae60;">Siguiente Pregunta</button>
+        </div>
+
+        <div id="resultado-final-vocabulario" class="score-display" style="display:none;"></div>
+    </div>
+
+    <div id="feedback-global" class="feedback"></div>
+</div>
+
+<script>
+    // --- DATOS ÍNTEGROS DE LOS ARCHIVOS .PY ---
+    const TERMINOS_HISTORIA = {
+        // Edad Antigua y Edad Media
+        "Romanización": 1,
+        "Invasiones bárbaras": 2,
+        "Concilios de Toledo": 3,
+        "Recaredo": 4,
+        "Emirato de Córdoba": 5,
+        "Abderramán III": 6,
+        "Taifas": 7,
+        "Alfonso VI": 8,
+        "Camino de Santiago": 9,
+        "Escuela de Traductores de Toledo": 10,
+        "Batalla de las Navas de Tolosa": 11,
+        "Jaime I": 12,
+        "Fernando III el Santo": 13,
+        "Mesta": 14,
+        "Compromiso de Caspe": 15,
+        "Conflicto de remensa": 16,
+
+        // Edad Moderna
+        "Inquisición": 17,
+        "Capitulaciones de Santa Fe": 18,
+        "Tratado de Tordesillas": 19,
+        "Juana de Castilla": 20,
+        "Leyes de Burgos": 21,
+        "Comunidades de Castilla": 22,
+        "La Malinche": 23,
+        "Francisco Pizarro": 24,
+        "Bartolomé de las Casas": 25,
+        "Expulsión de los moriscos": 26,
+        "Paz de Westfalia": 27,
+        "Tratado de Utrecht": 28,
+        "Decretos de Nueva Planta": 29,
+        "Isabel de Farnesio": 30,
+        "Pactos de Familia": 31,
+        "Canal de Castilla": 32,
+
+        // Edad Contemporánea S. XIX
+        "Tratado de Fontainebleau": 33,
+        "Motín de Aranjuez": 34,
+        "Abdicaciones de Bayona": 35,
+        "Pronunciamiento de Riego": 36,
+        "Simón Bolívar": 37,
+        "Carlos María Isidro": 38       
+    };
+
+
+
+    const VOCABULARIO_HISTORIA = {
+      };
+
+    // --- NAVEGACIÓN ---
+    function showGame(id) {
+        document.querySelectorAll('.game-area').forEach(div => div.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        hideFeedback();
+    }
+
+    function hideFeedback() {
+        const fb = document.getElementById('feedback-global');
+        fb.style.display = 'none';
+        fb.className = 'feedback';
+    }
+
+    function showFeedback(text, type) {
+        const fb = document.getElementById('feedback-global');
+        fb.innerText = text;
+        fb.className = 'feedback ' + type;
+        fb.style.display = 'block';
+    }
+
+    // --- LÓGICA RETO CRONOLÓGICO (UNO A UNO) ---
+    let ordenCorrectoReto = [];
+    let seleccionUsuarioReto = [];
+
+    function iniciarReto() {
+        hideFeedback();
+        seleccionUsuarioReto = [];
+        const cantInput = document.getElementById('cantidad-reto');
+        let cant = parseInt(cantInput.value) || 5;
+        cant = Math.min(Math.max(cant, 2), 20);
+
+        const keys = Object.keys(TERMINOS_HISTORIA);
+        const seleccionados = keys.sort(() => 0.5 - Math.random()).slice(0, cant);
+        
+        ordenCorrectoReto = [...seleccionados].sort((a, b) => TERMINOS_HISTORIA[a] - TERMINOS_HISTORIA[b]);
+        
+        const desordenados = [...seleccionados].sort(() => 0.5 - Math.random());
+        
+        // Dibujar botones
+        const pool = document.getElementById('pool-terminos');
+        pool.innerHTML = "";
+        desordenados.forEach(term => {
+            const btn = document.createElement('button');
+            btn.innerText = term;
+            btn.className = "term-btn";
+            btn.onclick = () => seleccionarTermino(term, btn);
+            pool.appendChild(btn);
+        });
+
+        document.getElementById('caja-seleccion').innerHTML = '<span style="color: #666; font-style: italic;">Haz clic en los botones de arriba...</span>';
+        document.getElementById('btn-comprobar-cron').style.display = "none";
+        document.getElementById('pantalla-reto').style.display = 'block';
+    }
+
+    function seleccionarTermino(term, btn) {
+        if (seleccionUsuarioReto.length === 0) {
+            document.getElementById('caja-seleccion').innerHTML = "";
+        }
+        
+        seleccionUsuarioReto.push(term);
+        btn.disabled = true;
+        btn.style.opacity = "0.4";
+
+        const badge = document.createElement('span');
+        badge.className = "order-badge";
+        badge.innerText = `${seleccionUsuarioReto.length}. ${term}`;
+        document.getElementById('caja-seleccion').appendChild(badge);
+
+        if (seleccionUsuarioReto.length === ordenCorrectoReto.length) {
+            document.getElementById('btn-comprobar-cron').style.display = "inline-block";
+        }
+    }
+
+    function verificarCronologia() {
+        const esCorrecto = JSON.stringify(seleccionUsuarioReto) === JSON.stringify(ordenCorrectoReto);
+        if (esCorrecto) {
+            showFeedback("¡EXCELENTE! Los has ordenado perfectamente.", "correct");
+        } else {
+            showFeedback("Incorrecto. El orden era: " + ordenCorrectoReto.join(" → "), "incorrect");
+        }
+        document.getElementById('btn-comprobar-cron').style.display = "none";
+    }
+
+    // --- LÓGICA VOCABULARIO (CON MEDIA) ---
+    let listaExamen = [];
+    let idxPregunta = 0;
+    let aciertos = 0;
+    let termActual = "";
+
+    function iniciarExamen() {
+        hideFeedback();
+        document.getElementById('resultado-final-vocabulario').style.display = 'none';
+        let cant = parseInt(document.getElementById('cantidad-vocabulario').value) || 5;
+        const keys = Object.keys(VOCABULARIO_HISTORIA);
+        cant = Math.min(Math.max(cant, 1), keys.length);
+
+        listaExamen = keys.sort(() => 0.5 - Math.random()).slice(0, cant);
+        idxPregunta = 0;
+        aciertos = 0;
+
+        document.getElementById('pantalla-examen').style.display = 'block';
+        cargarPregunta();
+    }
+
+    function cargarPregunta() {
+        hideFeedback();
+        termActual = listaExamen[idxPregunta];
+        document.getElementById('contador-preguntas').innerText = `Definición ${idxPregunta + 1} de ${listaExamen.length}`;
+        document.getElementById('definicion-display').innerText = VOCABULARIO_HISTORIA[termActual];
+        
+        const inp = document.getElementById('respuesta-vocabulario');
+        inp.value = "";
+        inp.disabled = false;
+        inp.focus();
+
+        document.getElementById('btn-validar-vocab').style.display = "inline-block";
+        document.getElementById('btn-siguiente-vocab').style.display = "none";
+    }
+
+    function verificarVocabulario() {
+        const res = document.getElementById('respuesta-vocabulario').value.trim();
+        if(!res) return;
+
+        document.getElementById('respuesta-vocabulario').disabled = true;
+        document.getElementById('btn-validar-vocab').style.display = "none";
+
+        if (res.toLowerCase() === termActual.toLowerCase()) {
+            aciertos++;
+            showFeedback("¡CORRECTO!", "correct");
+        } else {
+            showFeedback(`INCORRECTO. Es: ${termActual}`, "incorrect");
+        }
+
+        const btnSig = document.getElementById('btn-siguiente-vocab');
+        btnSig.style.display = "inline-block";
+        btnSig.innerText = (idxPregunta === listaExamen.length - 1) ? "Ver Nota Final" : "Siguiente";
+    }
+
+    function siguientePreguntaExamen() {
+        idxPregunta++;
+        if (idxPregunta < listaExamen.length) {
+            cargarPregunta();
+        } else {
+            const nota = ((aciertos / listaExamen.length) * 10).toFixed(2);
+            document.getElementById('pantalla-examen').style.display = 'none';
+            const resDiv = document.getElementById('resultado-final-vocabulario');
+            resDiv.innerHTML = `<h3>Resultado</h3>Aciertos: ${aciertos}/${listaExamen.length}<span class="score-number">${nota}</span>`;
+            resDiv.style.display = 'block';
+        }
+    }
+</script>
+</body>
+</html>
