@@ -131,8 +131,8 @@
 
     <div id="reto-cronologico" class="game-area">
         <h2>Reto: Ordena Cronológicamente</h2>
-        <p>¿Cuántos términos quieres ordenar? (2-20):</p>
-        <input type="number" id="cantidad-reto" min="2" max="20" value="5">
+        <p>¿Cuántos términos quieres ordenar? (2-75):</p>
+        <input type="number" id="cantidad-reto" min="2" max="75" value="5">
         <button onclick="iniciarReto()">Generar Reto</button>
         
         <div id="pantalla-reto" style="display:none; margin-top:20px;">
@@ -328,7 +328,7 @@
         seleccionUsuarioReto = [];
         const cantInput = document.getElementById('cantidad-reto');
         let cant = parseInt(cantInput.value) || 5;
-        cant = Math.min(Math.max(cant, 2), 20);
+        cant = Math.min(Math.max(cant, 2), 75);
 
         const keys = Object.keys(TERMINOS_HISTORIA);
         const seleccionados = keys.sort(() => 0.5 - Math.random()).slice(0, cant);
