@@ -132,7 +132,7 @@
     <div id="reto-cronologico" class="game-area">
         <h2>Reto: Ordena Cronológicamente</h2>
         <p>¿Cuántos términos quieres ordenar? (2-17):</p>
-        <input type="number" id="cantidad-reto" min="2" max="20" value="5">
+        <input type="number" id="cantidad-reto" min="2" max="17" value="5">
         <button onclick="iniciarReto()">Generar Reto</button>
         
         <div id="pantalla-reto" style="display:none; margin-top:20px;">
@@ -153,7 +153,7 @@
     <div id="examen-vocabulario" class="game-area">
         <h2>Examen de Vocabulario</h2>
         <p>¿Cuántas definiciones quieres en este examen?</p>
-        <input type="number" id="cantidad-vocabulario" min="1" max="20" value="5">
+        <input type="number" id="cantidad-vocabulario" min="2" max="17" value="5">
         <button onclick="iniciarExamen()">Empezar Examen</button>
         
         <div id="pantalla-examen" style="display:none; margin-top:20px;">
@@ -225,7 +225,7 @@
         seleccionUsuarioReto = [];
         const cantInput = document.getElementById('cantidad-reto');
         let cant = parseInt(cantInput.value) || 5;
-        cant = Math.min(Math.max(cant, 2), 20);
+        cant = Math.min(Math.max(cant, 2), 17);
 
         const keys = Object.keys(TERMINOS_HISTORIA);
         const seleccionados = keys.sort(() => 0.5 - Math.random()).slice(0, cant);
