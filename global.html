@@ -313,9 +313,18 @@
         fb.style.display = 'block';
     }
 
-    // --- LÓGICA RETO CRONOLÓGICO (UNO A UNO) ---
+       // --- LÓGICA RETO CRONOLÓGICO (UNO A UNO) ---
     let ordenCorrectoReto = [];
     let seleccionUsuarioReto = [];
+
+    // Función auxiliar para aleatoriedad real (Fisher-Yates)
+    function barajar(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
 
     function iniciarReto() {
         hideFeedback();
@@ -325,13 +334,16 @@
         cant = Math.min(Math.max(cant, 2), 75);
 
         const keys = Object.keys(TERMINOS_HISTORIA);
-        const seleccionados = keys.sort(() => 0.5 - Math.random()).slice(0, cant);
+        
+        // Mejora del azar: Barajamos todas las keys y extraemos la cantidad deseada
+        const seleccionados = barajar([...keys]).slice(0, cant);
         
         ordenCorrectoReto = [...seleccionados].sort((a, b) => TERMINOS_HISTORIA[a] - TERMINOS_HISTORIA[b]);
         
-        const desordenados = [...seleccionados].sort(() => 0.5 - Math.random());
+        // Mejora del azar: Barajamos los seleccionados para mostrarlos desordenados
+        const desordenados = barajar([...seleccionados]);
         
-        // Dibujar botones
+        // Dibujar botones (el resto del código se mantiene igual)
         const pool = document.getElementById('pool-terminos');
         pool.innerHTML = "";
         desordenados.forEach(term => {
